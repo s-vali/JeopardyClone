@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CATEGORIES, VALUES } from "@/app/data/questions";
 import { ModalState } from "@/app/types/game";
 import { formatCurrency } from "@/app/utils/format";
 import ClueMedia from "@/app/components/ClueMedia";
 
 const PLAYERS = ["Player 1", "Player 2", "Player 3"];
+const TRANSITION_MS = 300;
 
 interface ClueModalProps {
   modal: ModalState;
@@ -33,6 +34,25 @@ export default function ClueModal({
     String(VALUES[modal.clueIdx])
   );
 
+  // Controls the CSS transition — starts false, flips true one frame after mount
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // One rAF ensures the browser has painted the initial (hidden) state
+    // before we apply the visible classes, giving us a real transition
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // For the answer phase exit: trigger fade-out then call the real handler
+  const makeExitHandler = useCallback(
+    (fn: () => void) => () => {
+      setVisible(false);
+      setTimeout(fn, TRANSITION_MS);
+    },
+    []
+  );
+
   const cat = CATEGORIES[modal.catIdx];
   const clue = cat.clues[modal.clueIdx];
   const baseValue = VALUES[modal.clueIdx];
@@ -48,11 +68,23 @@ export default function ClueModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/88 flex items-center justify-center z-50">
+    <div
+      // Backdrop: fades in/out
+      className={`fixed inset-0 flex items-center justify-center z-50
+                  transition-all data-enter:duration-500 data-enter:ease-out data-leave:duration-400 data-leave:ease-in data-closed:sm:translate-y-0 data-closed:sm:scale-95
+                  ${
+                    visible ? "bg-black/88 opacity-100" : "bg-black/0 opacity-0"
+                  }`}
+    >
       <div
-        className="bg-linear-to-br from-blue-700 to-blue-900 border-4 border-yellow-400
-                   rounded-lg px-10 py-8 max-w-xl w-[90%] text-center
-                   shadow-[0_0_50px_rgba(255,215,0,0.2)]"
+        // Card: scales + fades in/out
+        className={`border-4 border-yellow-400 rounded-lg px-10 py-8
+                    max-w-xl w-[90%] text-center bg-linear-to-br from-blue-700 to-blue-900
+                    shadow-[0_0_50px_rgba(255,215,0,0.5)]
+                    transition-all data-enter:duration-500 data-enter:ease-out data-leave:duration-400 data-leave:ease-in data-closed:sm:translate-y-0 data-closed:sm:scale-95
+                    ${
+                      visible ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                    }`}
       >
         {/* Daily Double Wager Phase */}
         {modal.phase === "dd-wager" && (
@@ -149,10 +181,9 @@ export default function ClueModal({
             </div>
 
             {clue.isDailyDouble ? (
-              /* Daily Double — only current player scores */
               <div className="flex gap-3 justify-center">
                 <button
-                  onClick={() => onAward(true)}
+                  onClick={makeExitHandler(() => onAward(true))}
                   className="bg-green-700 border-2 border-green-400 text-white font-bold
                              uppercase tracking-widest px-6 py-2 rounded hover:bg-green-600 transition-colors"
                   style={{ fontFamily: "'Oswald', sans-serif" }}
@@ -160,7 +191,7 @@ export default function ClueModal({
                   Correct ✓
                 </button>
                 <button
-                  onClick={() => onAward(false)}
+                  onClick={makeExitHandler(() => onAward(false))}
                   className="bg-red-800 border-2 border-red-500 text-white font-bold
                              uppercase tracking-widest px-6 py-2 rounded hover:bg-red-700 transition-colors"
                   style={{ fontFamily: "'Oswald', sans-serif" }}
@@ -169,7 +200,6 @@ export default function ClueModal({
                 </button>
               </div>
             ) : (
-              /* Normal clue — select who answered */
               <>
                 <p className="text-white/60 text-xs tracking-widest uppercase mb-2">
                   Who got it right?
@@ -194,7 +224,7 @@ export default function ClueModal({
                 </div>
                 <div className="flex gap-3 justify-center">
                   <button
-                    onClick={() => onAward(true)}
+                    onClick={makeExitHandler(() => onAward(true))}
                     disabled={modal.selectedPlayer === null}
                     className="bg-green-700 border-2 border-green-400 text-white font-bold
                                uppercase tracking-widest px-5 py-2 rounded hover:bg-green-600
@@ -204,7 +234,7 @@ export default function ClueModal({
                     Correct ✓
                   </button>
                   <button
-                    onClick={() => onAward(false)}
+                    onClick={makeExitHandler(() => onAward(false))}
                     disabled={modal.selectedPlayer === null}
                     className="bg-red-800 border-2 border-red-500 text-white font-bold
                                uppercase tracking-widest px-5 py-2 rounded hover:bg-red-700
@@ -214,7 +244,7 @@ export default function ClueModal({
                     Wrong ✗
                   </button>
                   <button
-                    onClick={onSkip}
+                    onClick={makeExitHandler(onSkip)}
                     className="border border-white/30 bg-white/10 text-white uppercase
                                tracking-widest text-sm px-5 py-2 rounded hover:bg-white/20 transition-colors"
                     style={{ fontFamily: "'Oswald', sans-serif" }}
