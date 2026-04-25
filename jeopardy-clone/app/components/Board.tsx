@@ -18,7 +18,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
       {CATEGORIES.map((cat, ci) => (
         <div
           key={ci}
-          className="bg-linear-to-b from-blue-900 to-blue-700 border border-blue-500/60
+          className="bg-linear-to-b from-blue-900 to-blue-700 border border-t-white border-blue-500/60
                      flex items-center justify-center text-center 
                      text-white text-xl uppercase tracking-wide rounded-sm"
           style={{ textShadow: "1px 1px 3px rgba(0,0,0,0.8)" }}
@@ -41,7 +41,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
                 ${
                   isUsed
                     ? "bg-blue-950 cursor-default"
-                    : "bg-linear-to-b from-blue-600 to-blue-900 border cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-blue-600 hover:to-blue-600 hover:border-yellow-400 rounded-sm hover:inset-shadow-md hover: inset-shadow-yellow-500"
+                    : "bg-linear-to-b from-blue-600 to-blue-900 border cursor-pointer transition-all duration-300 hover:bg-linear-to-t hover:from-blue-600 hover:to-blue-600 hover:border-yellow-400 hover:border-b-yellow-600 hover:border-t-yellow-600 rounded-sm hover:inset-shadow-md hover: inset-shadow-yellow-500"
                 }`}
             >
               {!isUsed && (
