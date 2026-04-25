@@ -24,9 +24,26 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Adding Content
 
-To add media, navigate to the folder `@/app/public/media` to add media files (i.e. picture, audio, video) so Next.js can be serve them statically. 
+To add media, navigate to the folder `@/app/public/media` to add media files (i.e. picture, audio, video) so Next.js can be serve them statically. The format for media files is the following:
 
-To add answers and questions for the categories, navigate to `@/app/data/questions.ts` and hardcode the text under `question` and `answer` variables. 
+```
+export interface ClueMedia {
+  type: MediaType;
+  src: string; // path relative to /public, e.g. "/media/clue1.jpg"
+  alt?: string; // for images: screen-reader text
+  caption?: string; // optional label shown below the media
+}
+```
+
+To add answers and questions for the categories, navigate to `@/app/data/questions.ts` and hardcode the text under `question` and `answer` variables. The format for Jeopardy clues is the following:
+```
+export interface Clue {
+  question: string;
+  answer: string;
+  isDailyDouble: boolean;
+  media?: ClueMedia;
+}
+```
 
 ## Learn More
 
