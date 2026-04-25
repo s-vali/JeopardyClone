@@ -22,6 +22,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Adding Content
+
+To add media, navigate to the folder `@/app/public/media` to add media files (i.e. picture, audio, video) so Next.js can be serve them statically. 
+
+To add answers and questions for the categories, navigate to `@/app/data/questions.ts` and hardcode the text under `question` and `answer` variables. 
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
