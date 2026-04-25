@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { CATEGORIES, VALUES } from "@/app/data/questions";
 import { ModalState } from "@/app/types/game";
 import { formatCurrency } from "@/app/utils/format";
 import ClueMedia from "@/app/components/ClueMedia";
 
 const PLAYERS = ["Player 1", "Player 2", "Player 3"];
-const TRANSITION_MS = 300;
+const TRANSITION_MS = 250;
+const FLIP_HALF_MS = 200; // half-duration of the 3D flip
 
 interface ClueModalProps {
   modal: ModalState;
@@ -34,17 +35,14 @@ export default function ClueModal({
     String(VALUES[modal.clueIdx])
   );
 
-  // Controls the CSS transition — starts false, flips true one frame after mount
+  // ── Modal enter/exit fade+scale ──────────────────────────
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // One rAF ensures the browser has painted the initial (hidden) state
-    // before we apply the visible classes, giving us a real transition
     const raf = requestAnimationFrame(() => setVisible(true));
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // For the answer phase exit: trigger fade-out then call the real handler
   const makeExitHandler = useCallback(
     (fn: () => void) => () => {
       setVisible(false);
@@ -52,6 +50,61 @@ export default function ClueModal({
     },
     []
   );
+
+  // ── 3D horizontal flip (question → answer) ───────────────
+  // flipState drives the inline rotateY value:
+  //   "resting"  →  rotateY(0deg)      visible, flat
+  //   "exit"     →  rotateY(90deg)     edge-on, disappearing
+  //   "enter"    →  rotateY(-90deg)    edge-on, about to appear
+  type FlipState = "resting" | "exit" | "enter";
+  const [flipState, setFlipState] = useState<FlipState>("resting");
+  const [displayPhase, setDisplayPhase] = useState<ModalState["phase"]>(
+    modal.phase
+  );
+  const flipRef = useRef(false); // guard against double-fire
+
+  // Keep displayPhase in sync when parent changes phase WITHOUT a flip
+  // (e.g. dd-wager → question)
+  useEffect(() => {
+    if (modal.phase !== "answer") {
+      setDisplayPhase(modal.phase);
+    }
+  }, [modal.phase]);
+
+  const handleRevealAnswer = useCallback(() => {
+    if (flipRef.current) return;
+    flipRef.current = true;
+
+    // 1. Rotate current face out (0 → 90deg)
+    setFlipState("exit");
+
+    setTimeout(() => {
+      // 2. Swap content while card is edge-on (invisible)
+      setDisplayPhase("answer");
+      // 3. Position new face at -90deg (other side)
+      setFlipState("enter");
+
+      // Small rAF so the browser commits the -90deg before transitioning
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // 4. Rotate new face into view (−90 → 0deg)
+          setFlipState("resting");
+          flipRef.current = false;
+        });
+      });
+    }, FLIP_HALF_MS);
+
+    // Also notify parent so modal.phase updates
+    onRevealAnswer();
+  }, [onRevealAnswer]);
+
+  // Derive the inline rotateY from flipState
+  const rotateY =
+    flipState === "exit"
+      ? "rotateY(90deg)"
+      : flipState === "enter"
+      ? "rotateY(-90deg)"
+      : "rotateY(0deg)";
 
   const cat = CATEGORIES[modal.catIdx];
   const clue = cat.clues[modal.clueIdx];
@@ -68,194 +121,220 @@ export default function ClueModal({
   };
 
   return (
+    // Backdrop: fade in/out
     <div
-      // Backdrop: fades in/out
       className={`fixed inset-0 flex items-center justify-center z-50
-                  transition-all data-enter:duration-500 data-enter:ease-out data-leave:duration-400 data-leave:ease-in data-closed:sm:translate-y-0 data-closed:sm:scale-95
+                  transition-opacity duration-250 ease-in-out
                   ${
-                    visible ? "bg-black/88 opacity-100" : "bg-black/0 opacity-0"
+                    visible ? "bg-black/80 opacity-100" : "bg-black/0 opacity-0"
                   }`}
     >
-      <div
-        // Card: scales + fades in/out
-        className={`border-4 border-yellow-400 rounded-lg px-10 py-8
-                    max-w-xl w-[90%] text-center bg-linear-to-br from-blue-700 to-blue-900
-                    shadow-[0_0_50px_rgba(255,215,0,0.5)]
-                    transition-all data-enter:duration-500 data-enter:ease-out data-leave:duration-400 data-leave:ease-in data-closed:sm:translate-y-0 data-closed:sm:scale-95
-                    ${
-                      visible ? "opacity-100 scale-100" : "opacity-0 scale-75"
-                    }`}
-      >
-        {/* Daily Double Wager Phase */}
-        {modal.phase === "dd-wager" && (
-          <>
-            <p
-              className="text-yellow-400 text-4xl mb-4 animate-pulse"
-              style={{
-                fontFamily: "'Anton', sans-serif",
-                textShadow: "0 0 20px rgba(255,215,0,0.8)",
-              }}
-            >
-              Daily Double!
-            </p>
-            <p className="text-yellow-400 text-sm tracking-widest uppercase mb-1">
-              {cat.name}
-            </p>
-            <p className="text-white/60 text-sm mb-3">
-              Max wager: {formatCurrency(maxWager)}
-            </p>
-            <input
-              type="number"
-              min={5}
-              max={maxWager}
-              value={wagerInput}
-              onChange={(e) => setWagerInput(e.target.value)}
-              className="block mx-auto mb-4 bg-black/50 border-2 border-yellow-400 rounded
-                         text-white text-2xl text-center px-4 py-2 w-40
-                         focus:outline-none focus:border-yellow-300"
-              style={{ fontFamily: "'Oswald', sans-serif" }}
-            />
-            <button
-              onClick={handleWagerSubmit}
-              className="bg-yellow-400 text-black font-bold uppercase tracking-widest
-                         px-8 py-3 rounded hover:bg-yellow-300 transition-colors"
-              style={{ fontFamily: "'Oswald', sans-serif" }}
-            >
-              Place Wager
-            </button>
-          </>
-        )}
+      {/*
+        Perspective wrapper — required for the 3D flip to look correct.
+        Matches: .md-effect-8 { perspective: 1300px }
+      */}
+      <div style={{ perspective: "1300px", width: "90%", maxWidth: "36rem" }}>
+        {/*
+          Card: fade+scale on mount/unmount  +  3D flip between phases.
+          transform-style: preserve-3d lets the rotateY render in true 3D.
+          Matches: .md-content { transform-style: preserve-3d; transition: all 0.3s }
+        */}
+        <div
+          className={`border-4 border-yellow-400 rounded-lg px-10 py-8 w-full text-center
+                      bg-linear-to-br from-blue-700 to-blue-900
+                      shadow-[0_0_50px_rgba(255,215,0,0.5)]
+                      transition-[opacity,transform] ease-in-out
+                      ${
+                        visible
+                          ? "opacity-100 scale-100"
+                          : "opacity-0 scale-[0.7]"
+                      }`}
+          style={{
+            transformStyle: "preserve-3d",
+            // Merge the modal enter/exit scale with the flip rotateY.
+            // We can't use both Tailwind scale classes and an inline rotateY
+            // simultaneously without one overwriting the other, so we apply
+            // the flip via a CSS variable and compose them here.
+            transform: `${visible ? "scale(1)" : "scale(0.7)"} ${rotateY}`,
+            // Exit half uses FLIP_HALF_MS; enter half also uses FLIP_HALF_MS.
+            // Modal open/close uses TRANSITION_MS for the scale fade.
+            transitionDuration:
+              flipState !== "resting"
+                ? `${FLIP_HALF_MS}ms`
+                : `${TRANSITION_MS}ms`,
+          }}
+        >
+          {/* ── DAILY DOUBLE WAGER ── */}
+          {displayPhase === "dd-wager" && (
+            <>
+              <p
+                className="text-yellow-400 text-4xl mb-4 animate-pulse"
+                style={{
+                  fontFamily: "'Anton', sans-serif",
+                  textShadow: "0 0 20px rgba(255,215,0,0.8)",
+                }}
+              >
+                Daily Double!
+              </p>
+              <p className="text-yellow-400 text-sm tracking-widest uppercase mb-1">
+                {cat.name}
+              </p>
+              <p className="text-white/60 text-sm mb-3">
+                Max wager: {formatCurrency(maxWager)}
+              </p>
+              <input
+                type="number"
+                min={5}
+                max={maxWager}
+                value={wagerInput}
+                onChange={(e) => setWagerInput(e.target.value)}
+                className="block mx-auto mb-4 bg-black/50 border-2 border-yellow-400 rounded
+                           text-white text-2xl text-center px-4 py-2 w-40
+                           focus:outline-none focus:border-yellow-300"
+                style={{ fontFamily: "'Oswald', sans-serif" }}
+              />
+              <button
+                onClick={handleWagerSubmit}
+                className="bg-yellow-400 text-black font-bold uppercase tracking-widest
+                           px-8 py-3 rounded hover:bg-yellow-300 transition-colors"
+                style={{ fontFamily: "'Oswald', sans-serif" }}
+              >
+                Place Wager
+              </button>
+            </>
+          )}
 
-        {/* Question Phase */}
-        {modal.phase === "question" && (
-          <>
-            <p className="text-yellow-400 text-sm tracking-widest uppercase mb-1">
-              {cat.name}
-            </p>
-            <p
-              className="text-yellow-400 text-3xl mb-5"
-              style={{
-                fontFamily: "'Anton', sans-serif",
-                textShadow: "0 0 10px rgba(255,215,0,0.5)",
-              }}
-            >
-              {clue.isDailyDouble ? "Daily Double — " : ""}
-              {formatCurrency(displayValue)}
-            </p>
-            <p className="text-white text-xl leading-relaxed mb-7 min-h-15">
-              {clue.question}
-            </p>
+          {/* ── QUESTION ── */}
+          {displayPhase === "question" && (
+            <>
+              <p className="text-yellow-400 text-sm tracking-widest uppercase mb-1">
+                {cat.name}
+              </p>
+              <p
+                className="text-yellow-400 text-3xl mb-5"
+                style={{
+                  fontFamily: "'Anton', sans-serif",
+                  textShadow: "0 0 10px rgba(255,215,0,0.5)",
+                }}
+              >
+                {clue.isDailyDouble ? "Daily Double — " : ""}
+                {formatCurrency(displayValue)}
+              </p>
+              <p className="text-white text-xl leading-relaxed mb-7 min-h-15">
+                {clue.question}
+              </p>
 
-            {clue.media && <ClueMedia media={clue.media} />}
+              {clue.media && <ClueMedia media={clue.media} />}
 
-            <button
-              onClick={onRevealAnswer}
-              className="border border-white/30 bg-white/10 text-white uppercase
-                         tracking-widest text-sm px-6 py-2 rounded hover:bg-white/20 transition-colors"
-              style={{ fontFamily: "'Oswald', sans-serif" }}
-            >
-              Reveal Answer
-            </button>
-          </>
-        )}
+              <button
+                onClick={handleRevealAnswer}
+                className="border border-white/30 bg-white/10 text-white uppercase
+                           tracking-widest text-sm px-6 py-2 rounded hover:bg-white/20 transition-colors"
+                style={{ fontFamily: "'Oswald', sans-serif" }}
+              >
+                Reveal Answer
+              </button>
+            </>
+          )}
 
-        {/* Answer Phase */}
-        {modal.phase === "answer" && (
-          <>
-            <p className="text-yellow-400 text-sm tracking-widest uppercase mb-1">
-              {cat.name}
-            </p>
-            <p
-              className="text-yellow-400 text-3xl mb-4"
-              style={{ fontFamily: "'Anton', sans-serif" }}
-            >
-              {formatCurrency(displayValue)}
-            </p>
-            <p className="text-white text-xl leading-relaxed mb-4 min-h-15">
-              {clue.question}
-            </p>
-            <div className="bg-black/40 border border-yellow-400/40 rounded px-6 py-3 mb-5 inline-block">
-              <span className="text-yellow-400 text-lg tracking-wide">
-                What is: {clue.answer}?
-              </span>
-            </div>
-
-            {clue.isDailyDouble ? (
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={makeExitHandler(() => onAward(true))}
-                  className="bg-green-700 border-2 border-green-400 text-white font-bold
-                             uppercase tracking-widest px-6 py-2 rounded hover:bg-green-600 transition-colors"
-                  style={{ fontFamily: "'Oswald', sans-serif" }}
-                >
-                  Correct ✓
-                </button>
-                <button
-                  onClick={makeExitHandler(() => onAward(false))}
-                  className="bg-red-800 border-2 border-red-500 text-white font-bold
-                             uppercase tracking-widest px-6 py-2 rounded hover:bg-red-700 transition-colors"
-                  style={{ fontFamily: "'Oswald', sans-serif" }}
-                >
-                  Wrong ✗
-                </button>
+          {/* ── ANSWER ── */}
+          {displayPhase === "answer" && (
+            <>
+              <p className="text-yellow-400 text-sm tracking-widest uppercase mb-1">
+                {cat.name}
+              </p>
+              <p
+                className="text-yellow-400 text-3xl mb-4"
+                style={{ fontFamily: "'Anton', sans-serif" }}
+              >
+                {formatCurrency(displayValue)}
+              </p>
+              <p className="text-white text-xl leading-relaxed mb-4 min-h-15">
+                {clue.question}
+              </p>
+              <div className="bg-black/40 border border-yellow-400/40 rounded px-6 py-3 mb-5 inline-block">
+                <span className="text-yellow-400 text-lg tracking-wide">
+                  What is: {clue.answer}?
+                </span>
               </div>
-            ) : (
-              <>
-                <p className="text-white/60 text-xs tracking-widest uppercase mb-2">
-                  Who got it right?
-                </p>
-                <div className="flex gap-2 justify-center mb-4">
-                  {PLAYERS.map((name, i) => (
-                    <button
-                      key={i}
-                      onClick={() => onSelectPlayer(i)}
-                      className={`px-4 py-1 border-2 rounded font-bold uppercase text-sm tracking-widest
-                                  transition-colors
-                                  ${
-                                    modal.selectedPlayer === i
-                                      ? "bg-yellow-400 text-black border-yellow-400"
-                                      : "bg-yellow-400/10 text-yellow-400 border-yellow-400/40 hover:bg-yellow-400/25"
-                                  }`}
-                      style={{ fontFamily: "'Oswald', sans-serif" }}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
+
+              {clue.isDailyDouble ? (
                 <div className="flex gap-3 justify-center">
                   <button
                     onClick={makeExitHandler(() => onAward(true))}
-                    disabled={modal.selectedPlayer === null}
                     className="bg-green-700 border-2 border-green-400 text-white font-bold
-                               uppercase tracking-widest px-5 py-2 rounded hover:bg-green-600
-                               disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                               uppercase tracking-widest px-6 py-2 rounded hover:bg-green-600 transition-colors"
                     style={{ fontFamily: "'Oswald', sans-serif" }}
                   >
                     Correct ✓
                   </button>
                   <button
                     onClick={makeExitHandler(() => onAward(false))}
-                    disabled={modal.selectedPlayer === null}
                     className="bg-red-800 border-2 border-red-500 text-white font-bold
-                               uppercase tracking-widest px-5 py-2 rounded hover:bg-red-700
-                               disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                               uppercase tracking-widest px-6 py-2 rounded hover:bg-red-700 transition-colors"
                     style={{ fontFamily: "'Oswald', sans-serif" }}
                   >
                     Wrong ✗
                   </button>
-                  <button
-                    onClick={makeExitHandler(onSkip)}
-                    className="border border-white/30 bg-white/10 text-white uppercase
-                               tracking-widest text-sm px-5 py-2 rounded hover:bg-white/20 transition-colors"
-                    style={{ fontFamily: "'Oswald', sans-serif" }}
-                  >
-                    No one
-                  </button>
                 </div>
-              </>
-            )}
-          </>
-        )}
+              ) : (
+                <>
+                  <p className="text-white/60 text-xs tracking-widest uppercase mb-2">
+                    Who got it right?
+                  </p>
+                  <div className="flex gap-2 justify-center mb-4">
+                    {PLAYERS.map((name, i) => (
+                      <button
+                        key={i}
+                        onClick={() => onSelectPlayer(i)}
+                        className={`px-4 py-1 border-2 rounded font-bold uppercase text-sm tracking-widest
+                                    transition-colors
+                                    ${
+                                      modal.selectedPlayer === i
+                                        ? "bg-yellow-400 text-black border-yellow-400"
+                                        : "bg-yellow-400/10 text-yellow-400 border-yellow-400/40 hover:bg-yellow-400/25"
+                                    }`}
+                        style={{ fontFamily: "'Oswald', sans-serif" }}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={makeExitHandler(() => onAward(true))}
+                      disabled={modal.selectedPlayer === null}
+                      className="bg-green-700 border-2 border-green-400 text-white font-bold
+                                 uppercase tracking-widest px-5 py-2 rounded hover:bg-green-600
+                                 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      style={{ fontFamily: "'Oswald', sans-serif" }}
+                    >
+                      Correct ✓
+                    </button>
+                    <button
+                      onClick={makeExitHandler(() => onAward(false))}
+                      disabled={modal.selectedPlayer === null}
+                      className="bg-red-800 border-2 border-red-500 text-white font-bold
+                                 uppercase tracking-widest px-5 py-2 rounded hover:bg-red-700
+                                 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      style={{ fontFamily: "'Oswald', sans-serif" }}
+                    >
+                      Wrong ✗
+                    </button>
+                    <button
+                      onClick={makeExitHandler(onSkip)}
+                      className="border border-white/30 bg-white/10 text-white uppercase
+                                 tracking-widest text-sm px-5 py-2 rounded hover:bg-white/20 transition-colors"
+                      style={{ fontFamily: "'Oswald', sans-serif" }}
+                    >
+                      No one
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

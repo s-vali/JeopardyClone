@@ -41,7 +41,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
                 ${
                   isUsed
                     ? "bg-blue-950 cursor-default"
-                    : "bg-linear-to-b from-blue-600 to-blue-900 border cursor-pointer transition-all duration-300 hover:bg-linear-to-t hover:from-blue-600 hover:to-blue-600 hover:border-yellow-400 hover:border-b-yellow-600 hover:border-t-yellow-600 rounded-sm hover:inset-shadow-md hover: inset-shadow-yellow-500"
+                    : "bg-linear-to-b from-blue-600 to-blue-900 border cursor-pointer transition-all duration-300 hover:bg-linear-to-t hover:from-blue-600 hover:to-blue-600 hover:border-yellow-400 rounded-sm hover:inset-shadow-md hover: inset-shadow-yellow-500"
                 }`}
             >
               {!isUsed && (
