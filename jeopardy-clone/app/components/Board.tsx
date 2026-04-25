@@ -11,7 +11,7 @@ interface BoardProps {
 export default function Board({ used, onSelectClue }: BoardProps) {
   return (
     <div
-      className="grid gap-0.75 p-0.75 bg-black flex-1"
+      className="grid gap-1 p-1 bg-black flex-1 rounded-sm"
       style={{ gridTemplateColumns: `repeat(${CATEGORIES.length}, 1fr)` }}
     >
       {/* Category Headers */}
@@ -20,7 +20,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
           key={ci}
           className="bg-linear-to-b from-blue-900 to-blue-700 border border-blue-500/60
                      flex items-center justify-center text-center 
-                     text-white font-bold text-[13px] uppercase tracking-wide"
+                     text-white text-xl uppercase tracking-wide rounded-sm"
           style={{ textShadow: "1px 1px 3px rgba(0,0,0,0.8)" }}
         >
           {cat.name}
@@ -41,7 +41,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
                 ${
                   isUsed
                     ? "bg-blue-950 cursor-default"
-                    : "bg-linear-to-b from-blue-600 to-blue-900 border cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-blue-600 hover:to-blue-600 hover:border-yellow-400"
+                    : "bg-linear-to-b from-blue-600 to-blue-900 border cursor-pointer transition-all duration-300 hover:bg-linear-to-r hover:from-blue-600 hover:to-blue-600 hover:border-yellow-400 rounded-sm hover:inset-shadow-md hover: inset-shadow-yellow-500"
                 }`}
             >
               {!isUsed && (

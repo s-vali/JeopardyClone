@@ -20,10 +20,10 @@ export default function ScoreBar({
   return (
     <header className="bg-linear-to-b from-indigo-950 to-blue-800 border-b-4 border-yellow-400 px-4 py-3 flex items-center justify-between gap-4">
       <h1
-        className="text-yellow-400 tracking-widest text-3xl drop-shadow-lg"
+        className="text-yellow-400 tracking-widest text-6xl drop-shadow-xl"
         style={{
           fontFamily: "'Anton', sans-serif",
-          textShadow: "2px 2px 0 #000",
+          textShadow: "6px 6px 0 #000",
         }}
       >
         Jeopardy!
