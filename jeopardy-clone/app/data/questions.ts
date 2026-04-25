@@ -1,7 +1,10 @@
+import { ClueMedia } from "@/app/types/game";
+
 export interface Clue {
   question: string;
   answer: string;
   isDailyDouble: boolean;
+  media?: ClueMedia;
 }
 
 export interface Category {
@@ -16,9 +19,14 @@ export const CATEGORIES: Category[] = [
     name: "World History",
     clues: [
       {
-        question: "This ancient wonder stood at the harbor of Rhodes",
-        answer: "Colossus of Rhodes",
+        question: "This iconic structure was completed in 1889",
+        answer: "Eiffel Tower",
         isDailyDouble: false,
+        media: {
+          type: "image",
+          src: "/media/eiffel-tower.webp",
+          alt: "A tall iron lattice tower",
+        },
       },
       {
         question: "Napoleon's final defeat occurred at this battle in 1815",
@@ -46,9 +54,14 @@ export const CATEGORIES: Category[] = [
     name: "Science",
     clues: [
       {
-        question: "The chemical symbol Au stands for this precious metal",
-        answer: "Gold",
+        question: "Name the artist who performs this song",
+        answer: "Bach",
         isDailyDouble: false,
+        media: {
+          type: "audio",
+          src: "/media/bach.mp3",
+          caption: "Listen carefully...",
+        },
       },
       {
         question: "This force keeps planets orbiting the sun",
@@ -76,10 +89,13 @@ export const CATEGORIES: Category[] = [
     name: "Pop Culture",
     clues: [
       {
-        question:
-          "This wizard attended Hogwarts School of Witchcraft and Wizardry",
-        answer: "Harry Potter",
+        question: "Who's cat is this??",
+        answer: "Mine",
         isDailyDouble: false,
+        media: {
+          type: "video",
+          src: "/media/cat.mp4",
+        },
       },
       {
         question: "She sang 'Rolling in the Deep' and 'Hello'",

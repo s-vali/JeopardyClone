@@ -25,7 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Flip animation helpers */
+/* Flip animation helpers 
 .perspective {
   perspective: 1000px;
 }
@@ -41,6 +41,7 @@ body {
 .backface-hidden {
   backface-visibility: hidden;
 }
+  */
 
 .alfa-slab-one-regular {
   font-family: "Alfa Slab One", serif;

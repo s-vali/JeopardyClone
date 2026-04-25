@@ -33,7 +33,7 @@ export default function EndScreen({ scores, onPlayAgain }: EndScreenProps) {
           return (
             <div
               key={i}
-              className={`border-2 rounded-lg px-8 py-5 min-w-[120px] transition-all
+              className={`border-2 rounded-lg px-8 py-5 min-w-30 transition-all
                 ${
                   isWinner
                     ? "border-white bg-yellow-400/15 shadow-[0_0_20px_rgba(255,215,0,0.4)]"

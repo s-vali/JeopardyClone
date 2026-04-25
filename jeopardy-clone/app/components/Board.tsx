@@ -11,7 +11,7 @@ interface BoardProps {
 export default function Board({ used, onSelectClue }: BoardProps) {
   return (
     <div
-      className="grid gap-[3px] p-[3px] bg-black flex-1"
+      className="grid gap-0.75 p-0.75 bg-black flex-1"
       style={{ gridTemplateColumns: `repeat(${CATEGORIES.length}, 1fr)` }}
     >
       {/* Category Headers */}
@@ -19,7 +19,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
         <div
           key={ci}
           className="bg-linear-to-b from-blue-900 to-blue-700 border border-blue-500/60
-                     flex items-center justify-center text-center px-2 py-3 min-h-[70px]
+                     flex items-center justify-center text-center px-2 py-3 min-h-17.5
                      text-white font-bold text-[13px] uppercase tracking-wide"
           style={{ textShadow: "1px 1px 3px rgba(0,0,0,0.8)" }}
         >
@@ -36,7 +36,7 @@ export default function Board({ used, onSelectClue }: BoardProps) {
               key={`${ci}-${ri}`}
               onClick={() => !isUsed && onSelectClue(ci, ri)}
               disabled={isUsed}
-              className={`min-h-[72px] flex items-center justify-center border border-blue-500/60
+              className={`min-h-18 flex items-center justify-center border border-blue-500/60
                 transition-colors duration-100
                 ${
                   isUsed

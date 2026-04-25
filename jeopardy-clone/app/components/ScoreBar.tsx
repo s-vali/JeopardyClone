@@ -37,7 +37,7 @@ export default function ScoreBar({
           {PLAYERS.map((name, i) => (
             <div
               key={i}
-              className={`text-center border rounded px-3 py-1 min-w-[90px] transition-all duration-200 ${
+              className={`text-center border rounded px-3 py-1 min-w-22.5 transition-all duration-200 ${
                 i === currentPlayer
                   ? "border-white bg-yellow-400/15 shadow-[0_0_10px_rgba(255,215,0,0.3)]"
                   : "border-yellow-400/60 bg-black/40"

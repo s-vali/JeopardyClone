@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORIES, VALUES } from "@/app/data/questions";
 import { ModalState } from "@/app/types/game";
 import { formatCurrency } from "@/app/utils/format";
+import ClueMedia from "@/app/components/ClueMedia";
 
 const PLAYERS = ["Player 1", "Player 2", "Player 3"];
 
@@ -109,9 +110,12 @@ export default function ClueModal({
               {clue.isDailyDouble ? "Daily Double — " : ""}
               {formatCurrency(displayValue)}
             </p>
-            <p className="text-white text-xl leading-relaxed mb-7 min-h-[60px]">
+            <p className="text-white text-xl leading-relaxed mb-7 min-h-15">
               {clue.question}
             </p>
+
+            {clue.media && <ClueMedia media={clue.media} />}
+
             <button
               onClick={onRevealAnswer}
               className="border border-white/30 bg-white/10 text-white uppercase
@@ -135,7 +139,7 @@ export default function ClueModal({
             >
               {formatCurrency(displayValue)}
             </p>
-            <p className="text-white text-xl leading-relaxed mb-4 min-h-[60px]">
+            <p className="text-white text-xl leading-relaxed mb-4 min-h-15">
               {clue.question}
             </p>
             <div className="bg-black/40 border border-yellow-400/40 rounded px-6 py-3 mb-5 inline-block">
