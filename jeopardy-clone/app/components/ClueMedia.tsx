@@ -8,7 +8,7 @@ interface Props {
 
 export default function ClueMedia({ media }: Props) {
   return (
-    <div className="my-4 flex flex-col items-center gap-2">
+    <div className="my-4 flex flex-col items-center gap-2 w-full">
       {media.type === "image" && (
         <img
           src={media.src}
@@ -18,7 +18,7 @@ export default function ClueMedia({ media }: Props) {
       )}
 
       {media.type === "audio" && (
-        <audio controls autoPlay className="w-full max-w-sm" src={media.src} />
+        <audio controls autoPlay className="w-full" src={media.src} />
       )}
 
       {media.type === "video" && (

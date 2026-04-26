@@ -44,9 +44,14 @@ export const CATEGORIES: Category[] = [
         isDailyDouble: true,
       },
       {
-        question: "This Macedonian king conquered Persia and Egypt by age 25",
-        answer: "Alexander the Great",
+        question: "This pizza tower in Italy",
+        answer: "Tower of Pisa",
         isDailyDouble: false,
+        media: {
+          type: "image",
+          src: "/media/pisa.webp",
+          alt: "Pizza tower marone",
+        },
       },
     ],
   },
@@ -153,9 +158,13 @@ export const CATEGORIES: Category[] = [
     name: "Literature",
     clues: [
       {
-        question: "Author of '1984' and 'Animal Farm'",
-        answer: "George Orwell",
+        question: "What birds are these?",
+        answer: "Morning dove...",
         isDailyDouble: false,
+        media: {
+          type: "video",
+          src: "/media/IMG_4964.MOV",
+        },
       },
       {
         question: "Shakespeare wrote this play about a Danish prince",
